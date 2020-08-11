@@ -18,7 +18,7 @@
               "type": "string"
             },
             "required": true,
-            "description": "Авторизационный токен"
+            "description": "Авторизационный токен."
           },
           {
             "in": "header",
@@ -32,7 +32,7 @@
         ],
         "requestBody": {
           "required": true,
-          "description": "Разделение секретов оператора",
+          "description": "Разделение секретов оператора.",
           "content": {
             "application/json": {
               "schema": {
@@ -67,7 +67,7 @@
               "type": "string"
             },
             "required": true,
-            "description": "Авторизационный токен"
+            "description": "Авторизационный токен."
           }
         ],
         "requestBody": {
@@ -134,7 +134,7 @@
         "type": "object",
         "properties": {
           "hash_id": {
-            "description": "sha256 от ФИО водителя и номера его водительского удостоверения",
+            "description": "sha256 от ФИО водителя и номера его водительского удостоверения.",
             "type": "string"
           },
           "shares": {
@@ -161,7 +161,7 @@
             "items": {
               "type": "string",
               "format": "uuid",
-              "description": "UUID оператора такси"
+              "description": "UUID оператора такси."
             }
           }
         },
@@ -186,10 +186,10 @@
       },
       "EndpointInfo": {
         "type": "object",
-        "description": "Представляет связь UUID оператора -> endpoint оператора",
+        "description": "Представляет связь UUID оператора -> endpoint оператора.",
         "properties": {
           "id": {
-            "description": "UUID оператора такси",
+            "description": "UUID оператора такси.",
             "type": "string",
             "format": "uuid"
           },
