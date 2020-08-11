@@ -1,0 +1,391 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "Endpoints операторов Такси.",
+    "title": "Taxi Aggregator Service",
+    "version": "1.0"
+  },
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "summary": "Health-Check",
+        "description": "Метод, вызовом которого контролируется доступность сервисов операторов Такси. Предоставляется каждым оператором.",
+        "responses": {
+          "200": {
+            "description": "Сервис доступен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис недоступен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/fatigue": {
+      "post": {
+        "summary": "Оповещение об усталости подмножества водителей.",
+        "description": "Посредством этого метода UBIC передает операторам время на линии и время на заказе для каждого водителя из заданного подможества.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Авторизационный токен."
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "UUID запроса (транзакции) – одного цикла вычислений."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Иформация по водителям.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FatigueBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Что-то пошло не так.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/online/hourly": {
+      "post": {
+        "summary": "Отслеживание состояния на линии для группы водителей.",
+        "description": "__UBIC__ раз в N единиц времени: \n* Группирует водителей, для которых в данный момент необходимо уточнить состояние  \n* Составляет список \"доступных\" опетаторов Такси\n* Случайно перемешивает список операторов\n* Выбирает первого оператора из списка\n* Вызывает __/v1/drivers/online/hourly__ для этого оператора\n\n__Оператор__, получив вызов:\n* На основании внутренних данных для каждого водителя из списка в параметрах вызова формирует вектор из 0 и 1, где\n  * 0 – у данного водителя не было ни одного заказа за час, предшествующий вызову\n  * 1 – у данного водителя был хотя бы 1 заказ за час, предшествующий вызову\n* Выбирает следующего оператора из списка, полученного в параметрах запроса\n  * Если список не пуст:\n    * Разделяет секреты, представляя каждый 1 и 0 в массиве в виде суммы двух случайных чисел\n    * Складывает первую часть секретов с долями секретов (числами), полученными в параметрах вызова\n    * Вызывает __/v1/drivers/online/hourly__ этого оператора и передает ему полученную сумму секретов и список оставшихся в списке операторов\n    * Вторую половину секретов оператор передает в UBIC, вызывая __/v1/shares__\n  * Если список пуст (текущий оператор – последний в цикле):\n    * Складывает свои 0 и 1 с суммами секретов, полученными от предыдущего оператора в параметрах вызова\n    * Передает рассчитанные суммы в UBIC\n",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Авторизационный токен."
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "UUID запроса (транзакции) – одного цикла вычислений."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Разделение секретов предыдущих операторов и список операторов, формирующий цикл вычислений.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Вычисление не может быть выполнено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/online/quater_hourly": {
+      "post": {
+        "summary": "Уточнение состояния \"на линии\" в рамках 15-ти минутных интервалов.",
+        "description": "UBIC вызывает данный метод для водителей, которые по результатам вызова __/v1/drivers/online/hourly__ изменили свое состояние в час, предшествующий запросу – вышли на линию или наоборот покинули ее. Цель – уточнить время, в которое водитель изменил состояние в 15-ти минутных интервалах в рамках часа, когда произошло изменение состояния. Час делится на 4 одинаковых интервала, каждый из которых кодируется 1, если у водителя в данный интервал был хотя бы один заказ, и 0 – иначе. По результатам этого вызова UBIC меняет расписание вызовов __/v1/drivers/online/hourly__ для водителя таким образом, чтобы \"не украсть\" у него больше 15 минут в случае блокировки последнего.\n\nЛогика вызовов для MPC-сложения совпадает с логикой, описанной в __/v1/drivers/online/hourly__.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Авторизационный токен."
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "description": "UUID запроса (транзакции) – одного цикла вычислений.",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Разделение секретов предыдущих операторов и список операторов, формирующий цикл вычислений.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Вычисление не может быть выполнено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/on_order": {
+      "post": {
+        "summary": "Контроль времени на заказе.",
+        "description": "UBIC планирует вызов этого метода через N (N – установленный для водителя лимит времени на заказах) часов от момента полного отдыха водителя. Цель – установить, сколько времени водитель провел на заказах у всех операторов Такси и проверить, не превышено ли ограничение. Следующий вызов для этого водителя (если водитель не будет заблокирован по результатам текущего вызова) будет запланирован через {N - результат текущего вызова единиц} времени.\n\nЛогика вызовов для MPC-сложения совпадает с логикой, описанной в __/v1/drivers/online/hourly__.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Авторизационный токен."
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "UUID запроса (транзакции) – одного цикла вычислений."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Разделение секретов предыдущих операторов и список операторов, формирующий цикл вычислений.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Вычисление не может быть выполнено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "Код ошибки в машиночитаемом формате.",
+            "type": "string"
+          },
+          "message": {
+            "description": "Человекочитаемое сообщение об ошибке.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "FatigueBody": {
+        "type": "object",
+        "description": "Массив объектов DriverFatigue, которые содержат время на линии и время на заказе для конкретного водителя.",
+        "properties": {
+          "timestamp": {
+            "description": "timestamp, от которого отсчитываются соответствующие времена на линии/заказе.",
+            "type": "string",
+            "format": "date-time"
+          },
+          "drivers": {
+            "type": "array",
+            "description": "Массив объектов DriverFatigue, каждый из которых содержит время на линии/заказе для конкретного водителя.",
+            "items": {
+              "$ref": "#/components/schemas/DriverFatigue"
+            }
+          }
+        },
+        "required": [
+          "timestamp",
+          "drivers"
+        ]
+      },
+      "DriverFatigue": {
+        "type": "object",
+        "properties": {
+          "hash_id": {
+            "description": "sha256 от ФИО водителя и номера его водительского удостоверения.",
+            "type": "string"
+          },
+          "online": {
+            "description": "Время на линии в часах.",
+            "type": "integer"
+          },
+          "on_order": {
+            "description": "Время на заказе в минутах.",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hash_id",
+          "online",
+          "on_order"
+        ]
+      },
+      "ControlBody": {
+        "type": "object",
+        "description": "Информация, необходимая для MPC-сложения.",
+        "properties": {
+          "timestamp": {
+            "description": "timestamp точки отсчета.",
+            "type": "string",
+            "format": "date-time"
+          },
+          "drivers": {
+            "type": "array",
+            "description": "Массив разделений секретов водителей.",
+            "items": {
+              "$ref": "#/components/schemas/DriverShares"
+            }
+          },
+          "chain": {
+            "description": "Массив идентификаторов операторов Такси, формирующий цикл вычислений.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "timestamp"
+        ]
+      },
+      "DriverShares": {
+        "type": "object",
+        "description": "Разделение секрета водителя.",
+        "properties": {
+          "hash_id": {
+            "description": "sha256 от ФИО водителя и номера его водительского удостоверения.",
+            "type": "string"
+          },
+          "shares": {
+            "type": "array",
+            "description": "Массив долей секретов водителя. Может состоять из:\n* Одного числа (доли одного секрета) в случае вызовов __/v1/drivers/online/hourly__ и и __/v1/drivers/on_order__\n* Четырех чисел (долей четырех секретов) в случае вызова __/v1/drivers/online/quater_hourly__\n",
+            "items": {
+              "type": "integer",
+              "minItems": 1,
+              "maxItems": 4
+            }
+          }
+        },
+        "required": [
+          "hash_id",
+          "shares"
+        ]
+      }
+    }
+  }
+}
