@@ -1,0 +1,369 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "Taxi Aggregator Service",
+    "title": "Endpoints for other Aggregators and UBIC to call",
+    "version": "1.0"
+  },
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "description": "Status reporting endpoint",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/fatigue": {
+      "post": {
+        "description": "Request for storing driver's fatigue data",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FatigueBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unable to carry calculation on.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/online/hourly": {
+      "post": {
+        "description": "Request for getting drivers online status to collect it's\nonline status by last hour;\n",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unable to carry calculation on.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/online/quater_hourly": {
+      "post": {
+        "description": "Request for getting drivers online status to collect it's\nonline status by last quater hour;\n",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unable to carry calculation on.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/drivers/on_order": {
+      "post": {
+        "description": "Called by UBIC and other aggregators to calculate\nhow long drivers were on orders from a specified moment up to now.\n",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Unable to carry calculation on.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "Machine-readable status code",
+            "type": "string"
+          },
+          "message": {
+            "description": "Human-readable description message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "FatigueBody": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "description": "Last known timestamp",
+            "type": "string",
+            "format": "date-time"
+          },
+          "drivers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DriverFatigue"
+            }
+          }
+        },
+        "required": [
+          "timestamp",
+          "drivers"
+        ]
+      },
+      "DriverFatigue": {
+        "type": "object",
+        "properties": {
+          "hash_id": {
+            "description": "Hash from driver’s license number and driver’s name.",
+            "type": "string"
+          },
+          "online": {
+            "description": "Time on line in minutes",
+            "type": "integer"
+          },
+          "on_order": {
+            "description": "Time on order in minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hash_id",
+          "online",
+          "on_order"
+        ]
+      },
+      "ControlBody": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "description": "Timestamp to control status up to",
+            "type": "string",
+            "format": "date-time"
+          },
+          "drivers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DriverShares"
+            }
+          },
+          "chain": {
+            "description": "Array of aggregator ids to fetch data from",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "timestamp"
+        ]
+      },
+      "DriverShares": {
+        "type": "object",
+        "properties": {
+          "hash_id": {
+            "description": "Hash from driver’s license number and driver’s name.",
+            "type": "string"
+          },
+          "shares": {
+            "type": "array",
+            "items": {
+              "description": "Either one or four (in case of 15 minutes control)\nshares of driver status secret\n",
+              "type": "integer",
+              "minItems": 1,
+              "maxItems": 4
+            }
+          }
+        },
+        "required": [
+          "hash_id",
+          "shares"
+        ]
+      }
+    }
+  }
+}
