@@ -1,0 +1,206 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "description": "Endpoints для коллаборативного управления усталостью водителей Такси.",
+    "title": "UBIC Fatigue Service",
+    "version": "1.0"
+  },
+  "paths": {
+    "/v1/shares": {
+      "post": {
+        "description": "Через этот вызов оператор такси передает доли своих секретов в UBIC. Долями секрета могут быть: \n  * Для каждого водителя: разделение флага (1 или 0), указывающего был ли у воддителя хотя бы один заказ за час, предшествующий времени опроса (см. /v1/drivers/online/hourly)\n  * Для каждого водителя: разделение 4 флагов (1 или 0), каждый из которых указывает был ли у водителя хотя бы один заказ в соответствующий 15-ти минутный интервал часа, предшествующего времени опроса (cм. /v1/drivers/online/quater_hourly)\n  * Для каждого водителя: разделение времени в минутах, которое водитель провел на заказах, от указанного timestamp и до времени опроса (см. /v1/drivers/on_order)\n",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Авторизационный токен"
+          },
+          {
+            "in": "header",
+            "name": "X-Request-Id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "UUID запроса (транзакции) – одного цикла вычислений."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Разделение секретов оператора",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SharesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ok",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/endpoints": {
+      "post": {
+        "description": "Service Discovery метод для операторов такси. Превращает UUID оператора такси в endpoint, по которому можно вызывать следующие методы API операторов, передавая эстафету вычислений:\n* /v1/drivers/online/hourly\n* /v1/drivers/online/quater_hourly\n* /v1/drivers/on_order\n",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Authorization",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "Авторизационный токен"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Массив UUID операторов такси для конвертации в соответствующие endpoints.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EndpointsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Массив пар {UUID оператора, endpoint}, где endpoint – URI для вызова API оператора.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EndpointsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StatusResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "Код ошибки в машиночитаемом формате.",
+            "type": "string"
+          },
+          "message": {
+            "description": "Человекочитаемое сообщение об ошибке.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      },
+      "SharesBody": {
+        "type": "object",
+        "properties": {
+          "drivers": {
+            "type": "array",
+            "description": "Массив, элемены которого представляют собой разделение секретов водителей в рамках оператора такси.",
+            "items": {
+              "$ref": "#/components/schemas/DriverShares"
+            }
+          }
+        },
+        "required": [
+          "drivers"
+        ]
+      },
+      "DriverShares": {
+        "type": "object",
+        "properties": {
+          "hash_id": {
+            "description": "sha256 от ФИО водителя и номера его водительского удостоверения",
+            "type": "string"
+          },
+          "shares": {
+            "type": "array",
+            "items": {
+              "description": "Массив, содержащий \n* либо одно число (в случае реакции на запросы /v1/drivers/online/hourly и и /v1/drivers/on_order)\n* либо 4 числа (в случае реакции на запрос /v1/drivers/online/quater_hourly) \n\nЧисла являются долями аддитивного разделения секретов водителей в рамках оператора такси. \n",
+              "type": "integer"
+            },
+            "minItems": 1,
+            "maxItems": 4
+          }
+        },
+        "required": [
+          "hash_id",
+          "shares"
+        ]
+      },
+      "EndpointsBody": {
+        "type": "object",
+        "description": "Массив UUID операторов такси для конвертации в соответствующие endpoints.",
+        "properties": {
+          "identifiers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid",
+              "description": "UUID оператора такси"
+            }
+          }
+        },
+        "required": [
+          "identifiers"
+        ]
+      },
+      "EndpointsResponse": {
+        "type": "object",
+        "description": "Массив объектов EndpointInfo, перевязывающих UUID операторов таски с URI для вызовов методов API.",
+        "properties": {
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EndpointInfo"
+            }
+          }
+        },
+        "required": [
+          "endpoints"
+        ]
+      },
+      "EndpointInfo": {
+        "type": "object",
+        "description": "Представляет связь UUID оператора -> endpoint оператора",
+        "properties": {
+          "id": {
+            "description": "UUID оператора такси",
+            "type": "string",
+            "format": "uuid"
+          },
+          "endpoint": {
+            "description": "URI для соответствующего endpoint.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "endpoint"
+        ]
+      }
+    }
+  }
+}
